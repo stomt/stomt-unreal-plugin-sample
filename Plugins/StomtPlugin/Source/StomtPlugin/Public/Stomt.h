@@ -1,14 +1,12 @@
-// Copyright 2016 Daniel Schukies. All Rights Reserved.
-
-
 #pragma once
+
 #include "StomtPluginPrivatePCH.h"
 #include "StomtRestRequest.h"
 #include "StomtLabel.h"
 #include "Stomt.generated.h"
 
 UCLASS()
-class UStomt : public UObject
+class STOMTPLUGIN_API UStomt : public UObject
 {
 	GENERATED_BODY()
 
