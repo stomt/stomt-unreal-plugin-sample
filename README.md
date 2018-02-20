@@ -1,5 +1,5 @@
 # Collect Feedback In-Game | STOMT for Unreal Engine 4
-#### Example Project
+#### Example Project | Main repository https://github.com/stomt/stomt-unreal-plugin
 #### Unreal Version: 4.18.2 (There is also a 4.16 branch)
 
 <p align="center">
