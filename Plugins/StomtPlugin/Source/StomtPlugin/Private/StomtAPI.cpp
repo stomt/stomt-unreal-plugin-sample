@@ -1,3 +1,4 @@
+// Copyright 2018 STOMT GmbH. All Rights Reserved.
 #pragma once
 
 #include "StomtPluginPrivatePCH.h"
@@ -15,9 +16,19 @@
 UStomtAPI* UStomtAPI::ConstructStomtAPI(FString TargetID, FString RestURL, FString AppID)
 {
 	UStomtAPI* api = NewObject<UStomtAPI>();
+
+	if (AppID.Equals("AKN5M7Ob0MqxKXYdE9i3IhQtF"))
+	{
+		api->SetTargetID("my-my");
+		api->SetRestURL("https://test.rest.stomt.com");
+	}
+	else
+	{
+		api->SetRestURL("https://rest.stomt.com");
+	}
+
 	api->SetAppID(AppID);
 	api->SetTargetID(TargetID);
-	api->SetRestURL(RestURL);
 
 	UE_LOG(StomtInit, Log, TEXT("Construct Stomt API"));
 	UE_LOG(StomtInit, Log, TEXT("AppID: %s "), *api->GetAppID());
@@ -34,6 +45,7 @@ UStomtAPI::UStomtAPI()
 	IsImageUploadComplete = false;
 	IsLogUploadComplete = false;
 	UseImageUpload = true;
+	useDefaultLabels = true;
 
 	this->Config = UStomtConfig::ConstructStomtConfig();
 	this->Track = UStomtTrack::ConstructStomtTrack();
@@ -67,10 +79,25 @@ void UStomtAPI::SendStomt(UStomt* stomt)
 		}
 	}
 
+	if (useDefaultLabels)
+	{
+		const FVector2D ViewportSize = FVector2D(GEngine->GameViewport->Viewport->GetSizeXY());
+		labels.Add(UStomtJsonValue::ConstructJsonValueString(this, ViewportSize.ToString()));
+		labels.Add(UStomtJsonValue::ConstructJsonValueString(this, UGameplayStatics::GetPlatformName()));
+	}
+
 	if (labels.Num() > 0)
 	{
 		jObjExtraData->SetArrayField(TEXT("labels"), labels);
 		request->GetRequestObject()->SetObjectField(TEXT("extradata"), jObjExtraData);
+	}
+
+	if (CustomKeyValuePairs.Num() > 0)
+	{
+		for (int i = 0; i != CustomKeyValuePairs.Num(); ++i)
+		{
+			jObjExtraData->SetStringField(CustomKeyValuePairs[i][0], CustomKeyValuePairs[i][1]);
+		}	
 	}
 
 	// Stomt Image
@@ -232,17 +259,30 @@ void UStomtAPI::OnRequestSessionResponse(UStomtRestRequest * Request)
 	UE_LOG(StomtNetwork, Log, TEXT("StomtsCreatedByUser: %d | StomtsReceivedByTarget: %d"), StomtsCreatedByUser, StomtsReceivedByTarget);
 }
 
-UStomtRestRequest* UStomtAPI::RequestTarget(FString TargetID)
+UStomtRestRequest * UStomtAPI::RequestTargetByAppID()
 {
-
 	UStomtRestRequest* request = NewObject<UStomtRestRequest>();
 	request->OnRequestComplete.AddDynamic(this, &UStomtAPI::OnRequestTargetResponse);
 	request->OnRequestFail.AddDynamic(this, &UStomtAPI::OnARequestFailed);
 
 	request->SetVerb(ERequestVerb::GET);
-	request->SetHeader(TEXT("appid"), this->GetAppID() );
+	request->SetHeader(TEXT("appid"), this->GetAppID());
 
-	request->ProcessURL( this->GetRestURL().Append("/targets/").Append(TargetID) );
+	request->ProcessURL(this->GetRestURL().Append("/targets/"));
+
+	return request;
+}
+
+UStomtRestRequest* UStomtAPI::RequestTarget(FString TargetID)
+{
+	UStomtRestRequest* request = NewObject<UStomtRestRequest>();
+	request->OnRequestComplete.AddDynamic(this, &UStomtAPI::OnRequestTargetResponse);
+	request->OnRequestFail.AddDynamic(this, &UStomtAPI::OnARequestFailed);
+
+	request->SetVerb(ERequestVerb::GET);
+	request->SetHeader(TEXT("appid"), this->GetAppID());
+
+	request->ProcessURL(this->GetRestURL().Append("/targets/").Append(TargetID));
 
 	return request;
 }
@@ -256,6 +296,7 @@ void UStomtAPI::OnRequestTargetResponse(UStomtRestRequest * Request)
 	if (!Request->GetResponseObject()->GetObjectField(TEXT("data"))->HasField(TEXT("displayname"))) return;
 	
 	this->TargetName = Request->GetResponseObject()->GetObjectField(TEXT("data"))->GetStringField(TEXT("displayname"));
+	this->TargetID = Request->GetResponseObject()->GetObjectField(TEXT("data"))->GetStringField(TEXT("id"));
 	this->SetImageURL(Request->GetResponseObject()
 		->GetObjectField(TEXT("data"))
 		->GetObjectField(TEXT("images"))
@@ -621,6 +662,15 @@ bool UStomtAPI::DoesScreenshotFileExist()
 void UStomtAPI::UseScreenshotUpload(bool UseUpload)
 {
 	UseImageUpload = UseUpload;
+}
+
+void UStomtAPI::AddCustomKeyValuePair(FString key, FString value)
+{
+	TArray<FString> pair = TArray<FString>();
+	pair.Add(key);
+	pair.Add(value);
+
+	CustomKeyValuePairs.Add(pair);
 }
 
 bool UStomtAPI::WriteFile(FString TextToSave, FString FileName, FString SaveDirectory, bool AllowOverwriting)

@@ -1,3 +1,4 @@
+// Copyright 2018 STOMT GmbH. All Rights Reserved.
 #pragma once
 
 #include "StomtPluginPrivatePCH.h"
@@ -22,14 +23,12 @@ void UStomtPluginWidget::OnConstruction(FString TargetID, FString RestURL, FStri
 	else
 	{
 		this->api->SetAppID(AppID);
-		this->api->SetTargetID(TargetID);
-		this->api->SetRestURL(RestURL);
 	}
 
 	this->Config = this->api->Config;
 
 	// Request Target Name
-	UStomtRestRequest* request = this->api->RequestTarget(TargetID);
+	UStomtRestRequest* request = this->api->RequestTargetByAppID();
 	request->OnRequestComplete.AddDynamic(this, &UStomtPluginWidget::OnTargetResponse);
 
 	//Lookup EMail
@@ -122,6 +121,9 @@ void UStomtPluginWidget::OnLoginResponse(UStomtRestRequest * LoginRequest)
 void UStomtPluginWidget::OnTargetResponse(UStomtRestRequest * TargetRequest)
 {
 	this->TargetName = this->api->GetTargetName();
+
+	UE_LOG(Stomt, Log, TEXT("OnTargetResponse: %s"), *this->TargetName);
+
 	this->ImageURL = this->api->GetImageURL();
 
 	this->api->OnTargetRequestComplete.Broadcast(TargetRequest);

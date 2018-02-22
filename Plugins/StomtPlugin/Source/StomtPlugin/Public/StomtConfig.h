@@ -1,3 +1,4 @@
+// Copyright 2018 STOMT GmbH. All Rights Reserved.
 #pragma once
 
 #include "StomtPluginPrivatePCH.h"
@@ -32,6 +33,7 @@ public:
 	**/
 	void Delete();
 
+	UFUNCTION(BlueprintCallable, Category = "Stomt Widget Plugin")
 	FString GetAccessToken();
 	void	SetAccessToken(FString AccessToken);
 

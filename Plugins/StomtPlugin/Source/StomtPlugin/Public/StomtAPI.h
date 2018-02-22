@@ -1,3 +1,4 @@
+// Copyright 2018 STOMT GmbH. All Rights Reserved.
 #pragma once
 
 #include "StomtPluginPrivatePCH.h"
@@ -110,6 +111,12 @@ public:
 
 	/**
 	* Sends an REST Request for a stomt target.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Stomt API")
+	UStomtRestRequest* RequestTargetByAppID();
+
+	/**
+	* Sends an REST Request for a stomt target.
 	* To receive the respose it is necessary to add a event delegate function.
 	* For example: api->GetRequest()->OnRequestComplete.AddDynamic(this, &UStomtPluginWidget::OnLoginRequestResponse).
 	* @param TargetID - ID of the requested stomt target.
@@ -209,6 +216,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stomt API")
 	bool			UseImageUpload;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stomt API")
+	bool			useDefaultLabels;
+
 	bool			IsLogUploadComplete;
 	bool			IsImageUploadComplete;
 
@@ -217,7 +227,11 @@ public:
 	bool			LogFileWasSend;
 
 	FString			RestURL;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stomt API")
 	FString			TargetName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stomt API")
 	FString			TargetID;
 	FString			AppID;
 	FString			ImageURL;
@@ -243,15 +257,19 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Stomt API")
 	void UseScreenshotUpload(bool UseUpload);
+
+	void AddCustomKeyValuePair(FString key, FString value);
 	
 private:
 
 	bool				WriteFile(FString TextToSave, FString FileName, FString SaveDirectory, bool AllowOverwriting);
 	bool				ReadFile(FString& Result, FString FileName, FString SaveDirectory);
+
 	TArray<uint8>		ReadBinaryFile(FString FilePath);
 
 	UStomtRestRequest*	SetupNewPostRequest();
 	UStomtRestRequest*	SetupNewDeleteRequest();
 	void				AddAccesstokenToRequest(UStomtRestRequest* Request);
 
+	TArray<TArray<FString>> CustomKeyValuePairs;
 };
