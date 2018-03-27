@@ -35,6 +35,10 @@ UStomtAPI* UStomtAPI::ConstructStomtAPI(FString TargetID, FString RestURL, FStri
 	UE_LOG(StomtInit, Log, TEXT("TargetID: %s "), *api->GetTargetID());
 	UE_LOG(StomtInit, Log, TEXT("RestURL: %s "), *api->GetRestURL());
 
+	api->LoadLanguageFile();
+
+	UE_LOG(StomtInit, Log, TEXT("LangTest: %s"), *api->GetLangText("STOMT_WISH_BUBBLE"));
+
 	return api;
 }
 
@@ -50,6 +54,8 @@ UStomtAPI::UStomtAPI()
 	this->Config = UStomtConfig::ConstructStomtConfig();
 	this->Track = UStomtTrack::ConstructStomtTrack();
 	DefaultScreenshotName = FString("HighresScreenshot00000.png");
+
+	 this->SetCurrentLanguage(this->GetSystemLanguage());
 }
 
 UStomtAPI::~UStomtAPI()
@@ -644,6 +650,74 @@ FString UStomtAPI::ReadScreenshotAsBase64()
 void UStomtAPI::OnARequestFailed(UStomtRestRequest * Request)
 {
 	this->OnRequestFailed.Broadcast(Request);
+}
+
+UStomtRestJsonObject* UStomtAPI::LoadLanguageFile()
+{
+	FString jsonString = "";
+
+	this->ReadFile(jsonString, FString(TEXT("languages.json")), FPaths::GamePluginsDir() + "StomtPlugin/Resources/" );
+	
+	UStomtRestJsonObject* jsonObject = UStomtRestJsonObject::ConstructJsonObject(this);
+	if (jsonObject->DecodeJson(jsonString))
+	{
+		this->Languages = jsonObject;
+	}
+	else
+	{
+		UE_LOG(StomtNetwork, Error, TEXT("Could not decode Language File StomtPlugin/Resources/languages.json"));
+	}
+
+	//UE_LOG(StomtNetwork, Warning, TEXT("Lang-File: %s"), *jsonObject->EncodeJson());
+	return jsonObject;
+}
+
+FString UStomtAPI::GetLangText(FString text)
+{
+	if (this->CurrentLanguage.IsEmpty())
+	{
+		this->CurrentLanguage = "en";
+	}
+
+	if (this->Languages != NULL)
+	{
+		if (!this->Languages->GetObjectField("data")->HasField(this->CurrentLanguage))
+		{
+			UE_LOG(StomtNetwork, Warning, TEXT("Language %s not supported (does not exist in language file) falling back to english."), *this->CurrentLanguage);
+			this->CurrentLanguage = "en";
+		}
+
+		if ( !this->Languages->GetObjectField("data")->GetObjectField(this->CurrentLanguage)->HasField(text) )
+		{
+			UE_LOG(StomtNetwork, Warning, TEXT("Translation for '%s' not found in language: '%s'."), *text, *this->CurrentLanguage);
+			return "No Transl.";
+		}
+
+		return this->Languages->GetObjectField("data")->GetObjectField(this->CurrentLanguage)->GetStringField(text);
+	}
+
+	return FString();
+}
+
+FString UStomtAPI::GetCurrentLanguage()
+{
+	return this->CurrentLanguage;
+}
+
+bool UStomtAPI::SetCurrentLanguage(FString language)
+{
+	if (language.IsEmpty())
+		return false;
+
+	this->CurrentLanguage = language.Left(2);
+
+	return true;
+}
+
+FString UStomtAPI::GetSystemLanguage()
+{
+	//UE_LOG(StomtFileAccess, Warning, TEXT("Culture: %s "), *FInternationalization::Get().GetCurrentCulture()->GetName().Left(2));
+	return FInternationalization::Get().GetCurrentCulture()->GetName().Left(2);
 }
 
 bool UStomtAPI::IsEmailCorrect(FString Email)
