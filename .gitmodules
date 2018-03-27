@@ -1,0 +1,3 @@
+[submodule "Plugins/StomtPluginSub"]
+	path = Plugins/StomtPluginSub
+	url = https://github.com/stomt/stomt-unreal-plugin.git
